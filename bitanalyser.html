@@ -1,0 +1,3063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bit-Level File Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+
+        .header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.4em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #a8d8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            display: inline-block;
+        }
+
+        /* New compact toolbar layout */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-section label {
+            font-size: 0.85em;
+            font-weight: 500;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+
+        /* Compact width controls */
+        .width-controls-compact {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .width-controls-compact input {
+            width: 50px;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .width-controls-compact button {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+
+        .width-controls-compact button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Dropdown menu styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: rgba(20, 20, 30, 0.95);
+            min-width: 180px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+        }
+
+        .dropdown-content button {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-content button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-content button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-content button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dropdown.show .dropdown-content {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.9em;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-button {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .file-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
+        }
+
+        .width-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 1em;
+            width: 100px;
+            transition: all 0.3s ease;
+            border: none;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .width-btn {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2em;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+        }
+
+        .width-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.5);
+        }
+
+        .width-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+        }
+
+        .width-btn.decrease {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+        }
+
+        .width-btn.decrease:hover {
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+        }
+
+        .width-btn.increase {
+            background: linear-gradient(45deg, #51cf66, #69db7c);
+            box-shadow: 0 2px 8px rgba(81, 207, 102, 0.3);
+        }
+
+        .width-btn.increase:hover {
+            box-shadow: 0 4px 12px rgba(81, 207, 102, 0.5);
+        }
+
+        .analysis-button {
+            background: linear-gradient(45deg, #9c27b0, #e91e63);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
+        }
+
+        .analysis-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.6);
+        }
+
+        .analysis-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid #4facfe;
+            border-radius: 12px;
+            padding: 0;
+            z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            /* Hide popup by default and make it resizable */
+            display: none;
+            resize: both;
+            min-width: 400px;
+            min-height: 300px;
+            /* Make popup draggable */
+            cursor: move;
+            user-select: none;
+        }
+
+        .analysis-content {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+            color: white;
+        }
+
+        .analysis-header {
+            padding: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .analysis-header h2 {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #a8d8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .analysis-body {
+            padding: 25px;
+        }
+
+        .analysis-controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .analysis-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .analysis-control-group label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .analysis-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            width: 90px;
+        }
+
+        .run-analysis-btn {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            align-self: end;
+        }
+
+        .run-analysis-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.6);
+        }
+
+        .analysis-results {
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .results-summary {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .summary-card h4 {
+            color: #4facfe;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .summary-card .value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .summary-card .description {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .loading-analysis {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            gap: 20px;
+        }
+
+        .search-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+        }
+
+        .edit-button {
+            background: linear-gradient(45deg, #fd7e14, #e8590c);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.4);
+        }
+
+        .edit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 126, 20, 0.6);
+        }
+
+        .edit-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-content {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-width: 95vw;
+            max-height: 95vh;
+            overflow: auto;
+            position: relative;
+            color: white;
+        }
+
+        .edit-header {
+            padding: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edit-header h2 {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #ffb347);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .edit-body {
+            padding: 25px;
+        }
+
+        .edit-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .edit-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .edit-control-group.full-width {
+            grid-column: span 3;
+        }
+
+        .edit-control-group label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .edit-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .edit-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: #fd7e14;
+            box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.3);
+        }
+
+        .command-input {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .run-edit-btn {
+            background: linear-gradient(45deg, #fd7e14, #e8590c);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            grid-column: span 3;
+            justify-self: center;
+            min-width: 200px;
+        }
+
+        .run-edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.6);
+        }
+
+        .edit-results {
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .edit-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .edit-stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .edit-stat-card h4 {
+            color: #fd7e14;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .edit-stat-card .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .edit-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .edit-preview h4 {
+            color: #fd7e14;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .bit-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .comparison-section h5 {
+            color: #a8d8ff;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .bit-display-mini {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .bit-mini {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin: 1px;
+            text-align: center;
+            line-height: 12px;
+            font-size: 9px;
+            border-radius: 2px;
+        }
+
+        .command-help {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .command-help h4 {
+            color: #fd7e14;
+            margin-bottom: 10px;
+        }
+
+        .command-help code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .download-edit-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            margin-right: 10px;
+        }
+
+        .download-edit-btn:hover {
+            background: linear-gradient(45deg, #20c997, #17a2b8);
+        }
+
+        .search-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-content {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+            color: white;
+        }
+
+        .search-header {
+            padding: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-header h2 {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #fff, #a8d8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .search-body {
+            padding: 25px;
+        }
+
+        .search-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .search-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .search-control-group label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .search-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+        }
+
+        .pattern-input {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+
+        .run-search-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            grid-column: span 2;
+            justify-self: center;
+            min-width: 200px;
+        }
+
+        .run-search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.6);
+        }
+
+        .search-results {
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .search-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .search-stat-card h4 {
+            color: #28a745;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .search-stat-card .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .matches-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .matches-list h4 {
+            color: #28a745;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .match-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            border-left: 3px solid #28a745;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .match-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .match-position {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .match-context {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+
+        .bit.pattern-match {
+            background: #28a745 !important;
+            color: white !important;
+            border: 2px solid #20c997 !important;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.8) !important;
+            animation: pulse-match 2s ease-in-out infinite !important;
+        }
+
+        @keyframes pulse-match {
+            0%, 100% { box-shadow: 0 0 10px rgba(40, 167, 69, 0.8); }
+            50% { box-shadow: 0 0 20px rgba(40, 167, 69, 1); }
+        }
+
+        .clear-matches-btn {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9em;
+            margin-left: 15px;
+        }
+
+        .clear-matches-btn:hover {
+            background: linear-gradient(45deg, #c82333, #bd2130);
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(45deg, #0056b3, #004085);
+        }
+
+        .extract-btn {
+            background: linear-gradient(45deg, #6f42c1, #5a2d91);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .extract-btn:hover {
+            background: linear-gradient(45deg, #5a2d91, #4c2a85);
+        }
+
+        .extraction-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            padding: 25px;
+            z-index: 1001;
+            color: white;
+            min-width: 400px;
+            display: none;
+        }
+
+        .extraction-dialog h3 {
+            margin-bottom: 20px;
+            color: #6f42c1;
+            font-size: 1.4em;
+        }
+
+        .extraction-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .extraction-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .extraction-control-group label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .extraction-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .extraction-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .extraction-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.2s ease;
+        }
+
+        .extraction-button.primary {
+            background: linear-gradient(45deg, #6f42c1, #5a2d91);
+            color: white;
+        }
+
+        .extraction-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .extraction-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .width-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.3);
+        }
+
+        .width-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.7;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #4facfe;
+        }
+
+        .viewer-container {
+            height: 70vh;
+            position: relative;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .bit-viewer {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.2;
+            position: relative;
+        }
+
+        .bit-row {
+            display: flex;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        .row-number {
+            width: 80px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            padding-right: 10px;
+            user-select: none;
+            font-weight: 500;
+        }
+
+        .bit {
+            width: 14px;
+            height: 14px;
+            margin: 1px;
+            display: inline-block;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+            position: relative;
+            font-size: 10px;
+            line-height: 14px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .bit-0 {
+            background: #2c3e50;
+            color: #95a5a6;
+            border: 1px solid #34495e;
+        }
+
+        .bit-1 {
+            background: #e74c3c;
+            color: white;
+            border: 1px solid #c0392b;
+            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+        }
+
+        .bit:hover {
+            transform: scale(1.2);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .bit.selected {
+            background: #f39c12 !important;
+            color: white;
+            border: 2px solid #e67e22;
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.8);
+        }
+
+        .selection-info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+        }
+
+        .selection-info h4 {
+            margin-bottom: 10px;
+            color: #4facfe;
+        }
+
+        .selection-info div {
+            margin: 5px 0;
+        }
+
+        .no-file-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            opacity: 0.7;
+            text-align: center;
+        }
+
+        .no-file-message svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .bytes-per-row {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .bit {
+                width: 12px;
+                height: 12px;
+                font-size: 9px;
+                line-height: 12px;
+            }
+            
+            .row-number {
+                width: 60px;
+                font-size: 0.7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bit-Level File Analyzer</h1>
+            <!-- New compact toolbar layout -->
+            <div class="toolbar">
+                <div class="toolbar-section">
+                    <label>File:</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileInput" accept="*">
+                        <button class="file-button" onclick="document.getElementById('fileInput').click()">
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="toolbar-section">
+                    <label>Bits/Row:</label>
+                    <div class="width-controls-compact">
+                        <button class="decrease" id="decreaseWidth" title="Decrease width">-</button>
+                        <input type="number" id="bitsPerRow" value="64" min="8" max="512" step="8">
+                        <button class="increase" id="increaseWidth" title="Increase width">+</button>
+                    </div>
+                </div>
+                
+                <div class="toolbar-section">
+                    <label>Step:</label>
+                    <input type="number" id="widthStep" class="width-input small" value="8" min="1" max="64" title="Width step amount" style="width: 50px; background: rgba(255,255,255,0.1); border: none; color: white; text-align: center; border-radius: 4px; padding: 4px;">
+                </div>
+                
+                <!-- Actions dropdown menu -->
+                <div class="dropdown" id="actionsDropdown">
+                    <button class="dropdown-button" onclick="toggleDropdown()">
+                        Actions ▼
+                    </button>
+                    <div class="dropdown-content">
+                        <button id="analyzeWidths" title="Analyze column bias across different widths">
+                            📊 Find Width
+                        </button>
+                        <button id="patternSearch" title="Search for binary patterns in the file">
+                            🔍 Find Patterns
+                        </button>
+                        <button id="bitEditor" title="Apply edit commands to transform bits">
+                            ✏️ Edit Bits
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="toolbar-section">
+                    <div class="bytes-per-row" id="bytesPerRow" style="font-size: 0.8em; opacity: 0.7;">8 bytes per row</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel" id="infoPanel">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">File Name</div>
+                    <div class="info-value" id="fileName">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">File Size</div>
+                    <div class="info-value" id="fileSize">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Bits</div>
+                    <div class="info-value" id="totalBits">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Bit Density</div>
+                    <div class="info-value" id="bitDensity">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="viewer-container">
+            <div class="bit-viewer" id="bitViewer">
+                <div class="no-file-message">
+                    <svg fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                    </svg>
+                    <h3>No file loaded</h3>
+                    <p>Choose a file to begin bit-level analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bit Edit Popup -->
+    <div class="edit-popup" id="editPopup">
+        <div class="edit-content">
+            <div class="edit-header">
+                <h2>Bit Editor</h2>
+                <button class="close-button" id="closeEdit">&times;</button>
+            </div>
+            <div class="edit-body">
+                <div class="command-help">
+                    <h4>Command Syntax:</h4>
+                    <p><code>t7s4i01011n3</code> = Take 7 bits, Skip 4 bits, Insert "01011", Invert 3 bits</p>
+                    <p><strong>Commands:</strong> t=take, s=skip, i=insert, n=invert (followed by bit count or bit sequence)</p>
+                </div>
+                <div class="edit-controls">
+                    <div class="edit-control-group">
+                        <label>Start Bit:</label>
+                        <input type="number" id="editStartBit" class="edit-input" value="0" min="0">
+                    </div>
+                    <div class="edit-control-group">
+                        <label>End Bit:</label>
+                        <input type="number" id="editEndBit" class="edit-input" value="0" min="0">
+                    </div>
+                    <div class="edit-control-group">
+                        <label>Repeat Pattern:</label>
+                        <select id="editRepeat" class="edit-input">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div class="edit-control-group full-width">
+                        <label>Edit Commands:</label>
+                        <input type="text" id="editCommands" class="edit-input command-input" 
+                               placeholder="e.g. t7s4i01011n3">
+                    </div>
+                    <button class="run-edit-btn" id="runEdit">Apply Edits</button>
+                </div>
+                <div class="edit-results" id="editResults">
+                    <div style="text-align: center; padding: 40px; opacity: 0.6;">
+                        <h3>Configure edit commands and click "Apply Edits" to begin</h3>
+                        <p>Commands will be applied to the specified bit range repeatedly if selected.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pattern Search Popup -->
+    <div class="search-popup" id="searchPopup">
+        <div class="search-content">
+            <div class="search-header">
+                <h2>Binary Pattern Search</h2>
+                <button class="close-button" id="closeSearch">&times;</button>
+            </div>
+            <div class="search-body">
+                <div class="search-controls">
+                    <div class="search-control-group">
+                        <label>Binary Pattern:</label>
+                        <input type="text" id="searchPattern" class="search-input pattern-input" 
+                               placeholder="e.g. 0100110101" pattern="[01]*">
+                    </div>
+                    <div class="search-control-group">
+                        <label>Start Bit:</label>
+                        <input type="number" id="searchStartBit" class="search-input" value="0" min="0">
+                    </div>
+                    <div class="search-control-group">
+                        <label>End Bit:</label>
+                        <input type="number" id="searchEndBit" class="search-input" value="0" min="0">
+                    </div>
+                    <div class="search-control-group">
+                        <label>Search Step:</label>
+                        <input type="number" id="searchStep" class="search-input" value="1" min="1" max="64">
+                    </div>
+                    <button class="run-search-btn" id="runSearch">Search Pattern</button>
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div style="text-align: center; padding: 40px; opacity: 0.6;">
+                        <h3>Enter a binary pattern and click "Search Pattern" to begin</h3>
+                        <p>Example: 0100110101 will find all occurrences of this 10-bit sequence</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Popup -->
+    <div class="analysis-popup" id="analysisPopup">
+        <div class="analysis-content">
+            <div class="analysis-header">
+                <h2>Width Analysis</h2>
+                <button class="close-button" id="closeAnalysis">&times;</button>
+            </div>
+            <div class="analysis-body">
+                <div class="analysis-controls">
+                    <div class="analysis-control-group">
+                        <label>Start Bit:</label>
+                        <input type="number" id="startBit" class="analysis-input" value="0" min="0">
+                    </div>
+                    <div class="analysis-control-group">
+                        <label>End Bit:</label>
+                        <input type="number" id="endBit" class="analysis-input" value="0" min="0">
+                    </div>
+                    <div class="analysis-control-group">
+                        <label>Min Width:</label>
+                        <input type="number" id="minWidth" class="analysis-input" value="4" min="4" max="256">
+                    </div>
+                    <div class="analysis-control-group">
+                        <label>Max Width:</label>
+                        <input type="number" id="maxWidth" class="analysis-input" value="128" min="8" max="512">
+                    </div>
+                    <div class="analysis-control-group">
+                        <label>Step Size:</label>
+                        <input type="number" id="analysisStep" class="analysis-input" value="1" min="1" max="32">
+                    </div>
+                    <button class="run-analysis-btn" id="runAnalysis">Run Analysis</button>
+                </div>
+                <div class="analysis-results" id="analysisResults">
+                    <div style="text-align: center; padding: 40px; opacity: 0.6;">
+                        <h3>Configure parameters and click "Run Analysis" to begin</h3>
+                        <p>This will analyze column bias patterns across different display widths to help identify optimal viewing configurations.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="selection-info" id="selectionInfo">
+        <h4>Selection Information</h4>
+        <div id="selectionDetails"></div>
+    </div>
+
+    <script>
+        function toggleDropdown() {
+            document.getElementById("actionsDropdown").classList.toggle("show");
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.dropdown-button')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.parentElement.classList.contains('show')) {
+                        openDropdown.parentElement.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const fileData = new Uint8Array(e.target.result);
+                //console.log('File data:', fileData);
+            }
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        class BitAnalyzer {
+            constructor() {
+                this.fileData = null;
+                this.bitsPerRow = 64;
+                this.selectedBits = new Set();
+                this.isSelecting = false;
+                this.selectionStart = null;
+                this.patternMatches = new Set();
+                this.lastSearchResults = null;
+                this.editedData = null;
+                this.virtualScroll = { scrollTop: 0, rowHeight: 18 };
+                this.renderedRows = new Map();
+                
+                this.initializeEventListeners();
+            }
+            
+            initializeEventListeners() {
+                document.getElementById('fileInput').addEventListener('change', (e) => this.loadFile(e));
+                document.getElementById('bitsPerRow').addEventListener('input', (e) => this.updateBitsPerRow(e));
+                document.getElementById('decreaseWidth').addEventListener('click', () => this.adjustWidth(-1));
+                document.getElementById('increaseWidth').addEventListener('click', () => this.adjustWidth(1));
+                document.getElementById('widthStep').addEventListener('input', () => this.validateWidthStep());
+                document.getElementById('analyzeWidths').addEventListener('click', () => this.showAnalysisPopup());
+                document.getElementById('closeAnalysis').addEventListener('click', () => this.hideAnalysisPopup());
+                document.getElementById('runAnalysis').addEventListener('click', () => this.runWidthAnalysis());
+                document.getElementById('patternSearch').addEventListener('click', () => this.showSearchPopup());
+                document.getElementById('closeSearch').addEventListener('click', () => this.hideSearchPopup());
+                document.getElementById('runSearch').addEventListener('click', () => this.runPatternSearch());
+                document.getElementById('bitEditor').addEventListener('click', () => this.showEditPopup());
+                document.getElementById('closeEdit').addEventListener('click', () => this.hideEditPopup());
+                document.getElementById('runEdit').addEventListener('click', () => this.runBitEdit());
+                document.getElementById('bitViewer').addEventListener('scroll', () => this.handleScroll());
+                
+                // Close popups when clicking outside
+                document.getElementById('analysisPopup').addEventListener('click', (e) => {
+                    if (e.target.id === 'analysisPopup') {
+                        this.hideAnalysisPopup();
+                    }
+                });
+                
+                document.getElementById('searchPopup').addEventListener('click', (e) => {
+                    if (e.target.id === 'searchPopup') {
+                        this.hideSearchPopup();
+                    }
+                });
+                
+                document.getElementById('editPopup').addEventListener('click', (e) => {
+                    if (e.target.id === 'editPopup') {
+                        this.hideEditPopup();
+                    }
+                });
+                
+                // Pattern input validation
+                document.getElementById('searchPattern').addEventListener('input', (e) => {
+                    this.validatePatternInput(e);
+                });
+                
+                // Update bytes per row display
+                this.updateBytesPerRowDisplay();
+            }
+            
+            updateBytesPerRowDisplay() {
+                const bitsPerRow = parseInt(document.getElementById('bitsPerRow').value);
+                const bytesPerRow = bitsPerRow / 8;
+                document.getElementById('bytesPerRow').textContent = `${bytesPerRow} bytes per row`;
+            }
+            
+            async loadFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                this.showLoading();
+                
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    this.fileData = new Uint8Array(arrayBuffer);
+                    
+                    this.updateFileInfo(file);
+                    this.renderBitView();
+                    this.clearSelection();
+                    
+                } catch (error) {
+                    console.error('Error loading file:', error);
+                    alert('Error loading file. Please try again.');
+                }
+            }
+            
+            showLoading() {
+                document.getElementById('bitViewer').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                `;
+            }
+            
+            updateFileInfo(file) {
+                const totalBits = this.fileData.length * 8;
+                const ones = this.countOnes();
+                const density = ((ones / totalBits) * 100).toFixed(2);
+                
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = this.formatFileSize(file.size);
+                document.getElementById('totalBits').textContent = totalBits.toLocaleString();
+                document.getElementById('bitDensity').textContent = `${ones.toLocaleString()} ones (${density}%)`;
+                
+                document.getElementById('infoPanel').style.display = 'block';
+            }
+            
+            formatFileSize(bytes) {
+                const units = ['bytes', 'KB', 'MB', 'GB'];
+                let size = bytes;
+                let unitIndex = 0;
+                
+                while (size >= 1024 && unitIndex < units.length - 1) {
+                    size /= 1024;
+                    unitIndex++;
+                }
+                
+                return `${size.toFixed(2)} ${units[unitIndex]}`;
+            }
+            
+            countOnes() {
+                let count = 0;
+                for (let byte of this.fileData) {
+                    for (let i = 0; i < 8; i++) {
+                        if (byte & (1 << (7 - i))) count++;
+                    }
+                }
+                return count;
+            }
+            
+            adjustWidth(direction) {
+                const currentWidth = parseInt(document.getElementById('bitsPerRow').value);
+                const step = parseInt(document.getElementById('widthStep').value) || 8;
+                const newWidth = currentWidth + (direction * step);
+                
+                // Clamp between min and max values
+                const clampedWidth = Math.max(8, Math.min(512, newWidth));
+                
+                document.getElementById('bitsPerRow').value = clampedWidth;
+                this.updateBitsPerRow({ target: { value: clampedWidth } });
+                
+                // Add visual feedback
+                const button = direction > 0 ? 
+                    document.getElementById('increaseWidth') : 
+                    document.getElementById('decreaseWidth');
+                
+                button.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    button.style.transform = '';
+                }, 100);
+            }
+            
+            validateWidthStep() {
+                const stepInput = document.getElementById('widthStep');
+                let step = parseInt(stepInput.value);
+                
+                // Ensure step is within reasonable bounds
+                if (isNaN(step) || step < 1) {
+                    step = 1;
+                } else if (step > 64) {
+                    step = 64;
+                }
+                
+                stepInput.value = step;
+            }
+
+            updateBitsPerRow(event) {
+                this.bitsPerRow = parseInt(event.target.value);
+                this.updateBytesPerRowDisplay();
+                this.clearSelection(); // Clear selection when width changes
+                if (this.fileData) {
+                    this.renderBitView();
+                }
+            }
+            
+            renderBitView() {
+                if (!this.fileData) return;
+
+                const viewer = document.getElementById('bitViewer');
+                const totalRows = Math.ceil((this.fileData.length * 8) / this.bitsPerRow);
+                const totalHeight = totalRows * this.virtualScroll.rowHeight;
+
+                if (!this.virtualScroll.spacer) {
+                    viewer.innerHTML = ''; // Clear it out only on first render
+
+                    const spacer = document.createElement('div');
+                    spacer.style.height = `${totalHeight}px`;
+                    spacer.style.position = 'relative';
+                    viewer.appendChild(spacer);
+
+                    const rowContainer = document.createElement('div');
+                    rowContainer.id = 'rowContainer';
+                    rowContainer.style.position = 'absolute';
+                    rowContainer.style.top = '0';
+                    rowContainer.style.left = '0';
+                    rowContainer.style.width = '100%';
+                    spacer.appendChild(rowContainer);
+                    this.virtualScroll.spacer = spacer;
+                    this.virtualScroll.rowContainer = rowContainer;
+                } else {
+                    this.virtualScroll.spacer.style.height = `${totalHeight}px`;
+                    this.virtualScroll.rowContainer.innerHTML = '';
+                    this.renderedRows.clear();
+                }
+
+                this.virtualScroll.totalRows = totalRows;
+
+                this.renderVisibleRows();
+            }
+
+            handleScroll() {
+                const viewer = document.getElementById('bitViewer');
+                this.virtualScroll.scrollTop = viewer.scrollTop;
+                this.renderVisibleRows();
+            }
+
+            renderVisibleRows() {
+                const viewer = document.getElementById('bitViewer');
+                const { scrollTop, rowHeight, totalRows, rowContainer } = this.virtualScroll;
+                if (!rowContainer) return;
+                const viewportHeight = viewer.clientHeight;
+
+                const startIndex = Math.floor(scrollTop / rowHeight);
+                const endIndex = Math.min(totalRows - 1, startIndex + Math.ceil(viewportHeight / rowHeight));
+
+                const buffer = 5;
+                const bufferedStartIndex = Math.max(0, startIndex - buffer);
+                const bufferedEndIndex = Math.min(totalRows - 1, endIndex + buffer);
+
+                const newRenderedRows = new Map();
+
+                // Render the new rows
+                for (let i = bufferedStartIndex; i <= bufferedEndIndex; i++) {
+                    let rowElement = this.renderedRows.get(i);
+                    if (!rowElement) {
+                        const bitIndex = i * this.bitsPerRow;
+                        rowElement = this.createBitRow(bitIndex);
+                        rowElement.style.position = 'absolute';
+                        rowElement.style.top = `${i * rowHeight}px`;
+                        rowElement.style.width = '100%';
+                        rowContainer.appendChild(rowElement);
+                    }
+                    newRenderedRows.set(i, rowElement);
+                }
+
+                // Remove old rows
+                for (const [rowIndex, rowElement] of this.renderedRows.entries()) {
+                    if (!newRenderedRows.has(rowIndex)) {
+                        rowContainer.removeChild(rowElement);
+                    }
+                }
+
+                this.renderedRows = newRenderedRows;
+            }
+            
+            createBitRow(startBitIndex) {
+                const row = document.createElement('div');
+                row.className = 'bit-row';
+                
+                // Row number (showing byte offset)
+                const rowNumber = document.createElement('div');
+                rowNumber.className = 'row-number';
+                const byteOffset = Math.floor(startBitIndex / 8);
+                rowNumber.textContent = `0x${byteOffset.toString(16).padStart(6, '0').toUpperCase()}:`;
+                row.appendChild(rowNumber);
+                
+                // Bits in this row
+                const bitsContainer = document.createElement('div');
+                bitsContainer.style.display = 'flex';
+                
+                for (let i = 0; i < this.bitsPerRow && (startBitIndex + i) < this.fileData.length * 8; i++) {
+                    const bitIndex = startBitIndex + i;
+                    const bit = this.createBitElement(bitIndex);
+                    bitsContainer.appendChild(bit);
+                    
+                    // Add space every 8 bits for readability
+                    if ((i + 1) % 8 === 0 && i < this.bitsPerRow - 1) {
+                        const spacer = document.createElement('div');
+                        spacer.style.width = '8px';
+                        bitsContainer.appendChild(spacer);
+                    }
+                }
+                
+                row.appendChild(bitsContainer);
+                return row;
+            }
+            
+            createBitElement(bitIndex) {
+                const byteIndex = Math.floor(bitIndex / 8);
+                const bitPosition = 7 - (bitIndex % 8);
+                const bitValue = (this.fileData[byteIndex] >> bitPosition) & 1;
+                
+                const bitElement = document.createElement('div');
+                bitElement.className = `bit bit-${bitValue}`;
+                bitElement.textContent = bitValue.toString();
+                bitElement.dataset.bitIndex = bitIndex;
+                
+                // Check if this bit is part of a pattern match
+                if (this.patternMatches.has(bitIndex)) {
+                    bitElement.classList.add('pattern-match');
+                }
+
+                if (this.selectedBits.has(bitIndex)) {
+                    bitElement.classList.add('selected');
+                }
+                
+                bitElement.addEventListener('mousedown', (e) => this.startSelection(e, bitIndex));
+                bitElement.addEventListener('mouseover', (e) => this.updateSelection(e, bitIndex));
+                bitElement.addEventListener('mouseup', () => this.endSelection());
+                
+                return bitElement;
+            }
+            
+            startSelection(event, bitIndex) {
+                event.preventDefault();
+                this.isSelecting = true;
+                this.selectionStart = bitIndex;
+                
+                if (!event.ctrlKey && !event.metaKey) {
+                    this.clearSelection();
+                }
+                
+                this.toggleBitSelection(bitIndex);
+                document.addEventListener('mouseup', () => this.endSelection());
+            }
+            
+            updateSelection(event, bitIndex) {
+                if (!this.isSelecting || this.selectionStart === null) return;
+                
+                const start = Math.min(this.selectionStart, bitIndex);
+                const end = Math.max(this.selectionStart, bitIndex);
+                
+                this.clearSelection();
+                for (let i = start; i <= end; i++) {
+                    this.selectedBits.add(i);
+                }
+                
+                this.updateSelectionDisplay();
+                this.showSelectionInfo();
+            }
+            
+            endSelection() {
+                this.isSelecting = false;
+                this.selectionStart = null;
+                document.removeEventListener('mouseup', this.endSelection);
+            }
+            
+            toggleBitSelection(bitIndex) {
+                if (this.selectedBits.has(bitIndex)) {
+                    this.selectedBits.delete(bitIndex);
+                } else {
+                    this.selectedBits.add(bitIndex);
+                }
+                this.updateSelectionDisplay();
+                this.showSelectionInfo();
+            }
+            
+            clearSelection() {
+                this.selectedBits.clear();
+                this.updateSelectionDisplay();
+                this.hideSelectionInfo();
+            }
+            
+            updateSelectionDisplay() {
+                document.querySelectorAll('.bit').forEach(bit => {
+                    const bitIndex = parseInt(bit.dataset.bitIndex);
+                    if (this.selectedBits.has(bitIndex)) {
+                        bit.classList.add('selected');
+                    } else {
+                        bit.classList.remove('selected');
+                    }
+                });
+            }
+            
+            showSelectionInfo() {
+                if (this.selectedBits.size === 0) {
+                    this.hideSelectionInfo();
+                    return;
+                }
+                
+                const selectedArray = Array.from(this.selectedBits).sort((a, b) => a - b);
+                const startBit = selectedArray[0];
+                const endBit = selectedArray[selectedArray.length - 1];
+                const startByte = Math.floor(startBit / 8);
+                const endByte = Math.floor(endBit / 8);
+                
+                // Get the actual bit values
+                const bitValues = selectedArray.map(bitIndex => {
+                    const byteIndex = Math.floor(bitIndex / 8);
+                    const bitPosition = 7 - (bitIndex % 8);
+                    return (this.fileData[byteIndex] >> bitPosition) & 1;
+                });
+                
+                const binaryString = bitValues.join('');
+                const hexString = this.binaryToHex(binaryString);
+                
+                const info = document.getElementById('selectionDetails');
+                info.innerHTML = `
+                    <div><strong>Selected Bits:</strong> ${this.selectedBits.size}</div>
+                    <div><strong>Bit Range:</strong> ${startBit} - ${endBit}</div>
+                    <div><strong>Byte Range:</strong> 0x${startByte.toString(16).toUpperCase()} - 0x${endByte.toString(16).toUpperCase()}</div>
+                    <div><strong>Binary:</strong> ${binaryString.length > 32 ? binaryString.substring(0, 32) + '...' : binaryString}</div>
+                    <div><strong>Hex:</strong> ${hexString}</div>
+                `;
+                
+                document.getElementById('selectionInfo').style.display = 'block';
+            }
+            
+            hideSelectionInfo() {
+                document.getElementById('selectionInfo').style.display = 'none';
+            }
+            
+            binaryToHex(binaryString) {
+                if (binaryString.length === 0) return '';
+                
+                // Pad to multiple of 4 bits
+                while (binaryString.length % 4 !== 0) {
+                    binaryString = '0' + binaryString;
+                }
+                
+                let hex = '';
+                for (let i = 0; i < binaryString.length; i += 4) {
+                    const chunk = binaryString.substr(i, 4);
+                    const hexDigit = parseInt(chunk, 2).toString(16).toUpperCase();
+                    hex += hexDigit;
+                }
+                
+                return '0x' + hex;
+            }
+            
+            // Pattern Search Methods
+            showSearchPopup() {
+                if (!this.fileData) {
+                    alert('Please load a file first before searching.');
+                    return;
+                }
+                
+                // Set default search range to full file
+                const totalBits = this.fileData.length * 8;
+                document.getElementById('searchStartBit').value = 0;
+                document.getElementById('searchEndBit').value = totalBits - 1;
+                document.getElementById('searchStartBit').max = totalBits - 1;
+                document.getElementById('searchEndBit').max = totalBits - 1;
+                
+                document.getElementById('searchPopup').style.display = 'flex';
+            }
+            
+            hideSearchPopup() {
+                document.getElementById('searchPopup').style.display = 'none';
+            }
+            
+            validatePatternInput(event) {
+                const input = event.target;
+                let value = input.value;
+                
+                // Remove any non-binary characters
+                value = value.replace(/[^01]/g, '');
+                
+                // Update the input with cleaned value
+                if (value !== input.value) {
+                    input.value = value;
+                }
+                
+                // Visual feedback for valid/invalid patterns
+                if (value.length === 0) {
+                    input.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                } else if (value.length > 0 && value.length <= 64) {
+                    input.style.borderColor = '#28a745';
+                } else {
+                    input.style.borderColor = '#dc3545';
+                }
+            }
+            
+            async runPatternSearch() {
+                const pattern = document.getElementById('searchPattern').value.trim();
+                const startBit = parseInt(document.getElementById('searchStartBit').value);
+                const endBit = parseInt(document.getElementById('searchEndBit').value);
+                const step = parseInt(document.getElementById('searchStep').value);
+                
+                if (!pattern || pattern.length === 0) {
+                    alert('Please enter a binary pattern to search for.');
+                    return;
+                }
+                
+                if (pattern.length > 64) {
+                    alert('Pattern length cannot exceed 64 bits.');
+                    return;
+                }
+                
+                if (startBit >= endBit) {
+                    alert('End bit must be greater than start bit.');
+                    return;
+                }
+                
+                if (endBit >= this.fileData.length * 8) {
+                    alert('End bit exceeds file length.');
+                    return;
+                }
+                
+                this.showSearchLoading();
+                
+                try {
+                    const matches = await this.searchBinaryPattern(pattern, startBit, endBit, step);
+                    this.displaySearchResults(pattern, matches, startBit, endBit, step);
+                    this.highlightPatternMatches(matches, pattern.length);
+                } catch (error) {
+                    console.error('Search error:', error);
+                    this.showSearchError();
+                }
+            }
+            
+            showSearchLoading() {
+                document.getElementById('searchResults').innerHTML = `
+                    <div class="loading-analysis">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Searching for binary pattern...</div>
+                    </div>
+                `;
+            }
+            
+            showSearchError() {
+                document.getElementById('searchResults').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <h3>Search Error</h3>
+                        <p>An error occurred during pattern search. Please try again.</p>
+                    </div>
+                `;
+            }
+            
+            async searchBinaryPattern(pattern, startBit, endBit, step) {
+                const matches = [];
+                const patternLength = pattern.length;
+                const searchRange = endBit - startBit + 1;
+                
+                // Convert pattern to array of integers for faster comparison
+                const patternBits = pattern.split('').map(bit => parseInt(bit));
+                
+                for (let bitIndex = startBit; bitIndex <= endBit - patternLength + 1; bitIndex += step) {
+                    let isMatch = true;
+                    
+                    // Check if pattern matches at this position
+                    for (let i = 0; i < patternLength; i++) {
+                        const currentBitIndex = bitIndex + i;
+                        const byteIndex = Math.floor(currentBitIndex / 8);
+                        const bitPosition = 7 - (currentBitIndex % 8);
+                        const bitValue = (this.fileData[byteIndex] >> bitPosition) & 1;
+                        
+                        if (bitValue !== patternBits[i]) {
+                            isMatch = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isMatch) {
+                        matches.push({
+                            startBit: bitIndex,
+                            endBit: bitIndex + patternLength - 1,
+                            byteOffset: Math.floor(bitIndex / 8),
+                            bitOffset: bitIndex % 8
+                        });
+                    }
+                    
+                    // Yield control periodically
+                    if ((bitIndex - startBit) % 10000 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+                }
+                
+                return matches;
+            }
+            
+            displaySearchResults(pattern, matches, startBit, endBit, step) {
+                const resultsContainer = document.getElementById('searchResults');
+                const searchRange = endBit - startBit + 1;
+                const density = matches.length > 0 ? ((matches.length * pattern.length) / searchRange * 100).toFixed(4) : 0;
+                
+                // Store results for download and extraction
+                this.lastSearchResults = {
+                    pattern,
+                    matches,
+                    startBit,
+                    endBit,
+                    step,
+                    searchRange
+                };
+                
+                resultsContainer.innerHTML = `
+                    <div class="search-stats">
+                        <div class="search-stat-card">
+                            <h4>Matches Found</h4>
+                            <div class="value">${matches.length.toLocaleString()}</div>
+                        </div>
+                        <div class="search-stat-card">
+                            <h4>Pattern Length</h4>
+                            <div class="value">${pattern.length} bits</div>
+                        </div>
+                        <div class="search-stat-card">
+                            <h4>Search Range</h4>
+                            <div class="value">${searchRange.toLocaleString()} bits</div>
+                        </div>
+                        <div class="search-stat-card">
+                            <h4>Coverage</h4>
+                            <div class="value">${density}%</div>
+                        </div>
+                    </div>
+                    ${matches.length > 0 ? `
+                        <div class="matches-list">
+                            <h4>Match Locations 
+                                <button class="clear-matches-btn" onclick="bitAnalyzer.clearPatternMatches()">
+                                    Clear Highlights
+                                </button>
+                                <button class="download-btn" onclick="bitAnalyzer.downloadMatches()">
+                                    📄 Download List
+                                </button>
+                                <button class="extract-btn" onclick="bitAnalyzer.showExtractionDialog()">
+                                    📤 Extract Bits
+                                </button>
+                            </h4>
+                            ${matches.slice(0, 100).map(match => `
+                                <div class="match-item" onclick="bitAnalyzer.scrollToMatch(${match.startBit})">
+                                    <div class="match-position">
+                                        Bit ${match.startBit.toLocaleString()} (0x${match.byteOffset.toString(16).toUpperCase()}:${match.bitOffset})
+                                    </div>
+                                    <div class="match-context">
+                                        ${this.getMatchContext(match.startBit, pattern.length)}
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${matches.length > 100 ? `
+                                <div style="text-align: center; padding: 10px; opacity: 0.7;">
+                                    ... and ${matches.length - 100} more matches
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : `
+                        <div style="text-align: center; padding: 40px; opacity: 0.6;">
+                            <h3>No matches found</h3>
+                            <p>The pattern "${pattern}" was not found in the specified range.</p>
+                        </div>
+                    `}
+                `;
+            }
+            
+            getMatchContext(startBit, patternLength) {
+                const contextBefore = 8;
+                const contextAfter = 8;
+                const actualStart = Math.max(0, startBit - contextBefore);
+                const actualEnd = Math.min(this.fileData.length * 8 - 1, startBit + patternLength + contextAfter - 1);
+                
+                let context = '';
+                for (let i = actualStart; i <= actualEnd; i++) {
+                    const byteIndex = Math.floor(i / 8);
+                    const bitPosition = 7 - (i % 8);
+                    const bitValue = (this.fileData[byteIndex] >> bitPosition) & 1;
+                    
+                    if (i === startBit) context += '<mark style="background: #28a745; color: white;">';
+                    context += bitValue;
+                    if (i === startBit + patternLength - 1) context += '</mark>';
+                }
+                
+                return context;
+            }
+            
+            highlightPatternMatches(matches, patternLength) {
+                this.patternMatches.clear();
+                matches.forEach(match => {
+                    for (let i = 0; i < patternLength; i++) {
+                        this.patternMatches.add(match.startBit + i);
+                    }
+                });
+                if (this.virtualScroll.rowContainer) {
+                    this.virtualScroll.rowContainer.innerHTML = '';
+                    this.renderedRows.clear();
+                    this.renderVisibleRows();
+                } else {
+                    this.renderBitView();
+                }
+            }
+            
+            clearPatternMatches() {
+                this.patternMatches.clear();
+                if (this.virtualScroll.rowContainer) {
+                    this.virtualScroll.rowContainer.innerHTML = '';
+                    this.renderedRows.clear();
+                    this.renderVisibleRows();
+                } else {
+                    this.renderBitView();
+                }
+            }
+            
+            scrollToMatch(bitIndex) {
+                const viewer = document.getElementById('bitViewer');
+                const row = Math.floor(bitIndex / this.bitsPerRow);
+                const scrollTop = row * this.virtualScroll.rowHeight;
+
+                viewer.scrollTo({
+                    top: scrollTop,
+                    behavior: 'smooth'
+                });
+
+                setTimeout(() => {
+                    const rowElement = this.renderedRows.get(row);
+                    if (rowElement) {
+                        rowElement.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                        setTimeout(() => {
+                            rowElement.style.backgroundColor = '';
+                        }, 2000);
+                    }
+                }, 500);
+            }
+            
+            downloadMatches() {
+                if (!this.lastSearchResults || this.lastSearchResults.matches.length === 0) {
+                    alert('No search results to download.');
+                    return;
+                }
+                
+                const { pattern, matches, startBit, endBit, step, searchRange } = this.lastSearchResults;
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                
+                // Create CSV content
+                let csvContent = `Pattern Search Results - ${timestamp}\n`;
+                csvContent += `Pattern: ${pattern}\n`;
+                csvContent += `Search Range: ${startBit} to ${endBit} (${searchRange} bits)\n`;
+                csvContent += `Step Size: ${step}\n`;
+                csvContent += `Total Matches: ${matches.length}\n\n`;
+                csvContent += `Match #,Start Bit,End Bit,Byte Offset,Bit Offset,Hex Address,Context\n`;
+                
+                matches.forEach((match, index) => {
+                    const context = this.getMatchContextPlain(match.startBit, pattern.length);
+                    csvContent += `${index + 1},${match.startBit},${match.endBit},${match.byteOffset},${match.bitOffset},0x${match.byteOffset.toString(16).toUpperCase()},${context}\n`;
+                });
+                
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `pattern_search_${pattern}_${timestamp}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            // Bit Edit Methods
+            showEditPopup() {
+                if (!this.fileData) {
+                    alert('Please load a file first before editing.');
+                    return;
+                }
+                
+                // Set default edit range to full file
+                const totalBits = this.fileData.length * 8;
+                document.getElementById('editStartBit').value = 0;
+                document.getElementById('editEndBit').value = totalBits - 1;
+                document.getElementById('editStartBit').max = totalBits - 1;
+                document.getElementById('editEndBit').max = totalBits - 1;
+                
+                document.getElementById('editPopup').style.display = 'flex';
+            }
+            
+            hideEditPopup() {
+                document.getElementById('editPopup').style.display = 'none';
+            }
+            
+            async runBitEdit() {
+                const commands = document.getElementById('editCommands').value.trim().toLowerCase();
+                const startBit = parseInt(document.getElementById('editStartBit').value);
+                const endBit = parseInt(document.getElementById('editEndBit').value);
+                const repeat = document.getElementById('editRepeat').value === 'true';
+                
+                if (!commands) {
+                    alert('Please enter edit commands.');
+                    return;
+                }
+                
+                if (startBit >= endBit) {
+                    alert('End bit must be greater than start bit.');
+                    return;
+                }
+                
+                if (endBit >= this.fileData.length * 8) {
+                    alert('End bit exceeds file length.');
+                    return;
+                }
+                
+                // Validate command syntax
+                if (!this.validateEditCommands(commands)) {
+                    alert('Invalid command syntax. Use format: t7s4i01011n3');
+                    return;
+                }
+                
+                this.showEditLoading();
+                
+                try {
+                    const result = await this.processEditCommands(commands, startBit, endBit, repeat);
+                    this.displayEditResults(result, commands, startBit, endBit, repeat);
+                } catch (error) {
+                    console.error('Edit error:', error);
+                    this.showEditError();
+                }
+            }
+            
+            showEditLoading() {
+                document.getElementById('editResults').innerHTML = `
+                    <div class="loading-analysis">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Processing edit commands...</div>
+                    </div>
+                `;
+            }
+            
+            showEditError() {
+                document.getElementById('editResults').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <h3>Edit Error</h3>
+                        <p>An error occurred while processing edit commands. Please check syntax.</p>
+                    </div>
+                `;
+            }
+            
+            validateEditCommands(commands) {
+                // Basic validation for command format
+                const commandPattern = /^([tsni]\d+|i[01]+)+$/;
+                return commandPattern.test(commands);
+            }
+            
+            parseEditCommands(commands) {
+                const parsed = [];
+                let i = 0;
+                
+                while (i < commands.length) {
+                    const cmd = commands[i];
+                    i++;
+                    
+                    if (cmd === 'i' && i < commands.length && /[01]/.test(commands[i])) {
+                        // Insert command with bit sequence
+                        let bitSeq = '';
+                        while (i < commands.length && /[01]/.test(commands[i])) {
+                            bitSeq += commands[i];
+                            i++;
+                        }
+                        parsed.push({ command: 'insert', value: bitSeq });
+                    } else {
+                        // Other commands with numeric values
+                        let numStr = '';
+                        while (i < commands.length && /\d/.test(commands[i])) {
+                            numStr += commands[i];
+                            i++;
+                        }
+                        const count = parseInt(numStr) || 0;
+                        
+                        switch (cmd) {
+                            case 't':
+                                parsed.push({ command: 'take', count });
+                                break;
+                            case 's':
+                                parsed.push({ command: 'skip', count });
+                                break;
+                            case 'n':
+                                parsed.push({ command: 'invert', count });
+                                break;
+                        }
+                    }
+                }
+                
+                return parsed;
+            }
+            
+            async processEditCommands(commands, startBit, endBit, repeat) {
+                const parsedCommands = this.parseEditCommands(commands);
+                const result = [];
+                const inputBits = this.extractBitsFromRange(startBit, endBit - startBit + 1);
+                
+                let sourceIndex = 0;
+                let cycles = 0;
+                const maxCycles = repeat ? 10000 : 1; // Prevent infinite loops
+                
+                while (sourceIndex < inputBits.length && cycles < maxCycles) {
+                    let commandExecuted = false;
+                    
+                    for (const cmd of parsedCommands) {
+                        if (sourceIndex >= inputBits.length && !repeat) break;
+                        
+                        switch (cmd.command) {
+                            case 'take':
+                                for (let i = 0; i < cmd.count && sourceIndex < inputBits.length; i++) {
+                                    result.push(parseInt(inputBits[sourceIndex]));
+                                    sourceIndex++;
+                                }
+                                commandExecuted = true;
+                                break;
+                                
+                            case 'skip':
+                                sourceIndex += cmd.count;
+                                commandExecuted = true;
+                                break;
+                                
+                            case 'insert':
+                                for (const bit of cmd.value) {
+                                    result.push(parseInt(bit));
+                                }
+                                commandExecuted = true;
+                                break;
+                                
+                            case 'invert':
+                                for (let i = 0; i < cmd.count && sourceIndex < inputBits.length; i++) {
+                                    const originalBit = parseInt(inputBits[sourceIndex]);
+                                    result.push(originalBit === 1 ? 0 : 1); // Bitwise inversion
+                                    sourceIndex++;
+                                }
+                                commandExecuted = true;
+                                break;
+                        }
+                    }
+                    
+                    if (!commandExecuted || !repeat) break;
+                    cycles++;
+                    
+                    // Yield control periodically
+                    if (cycles % 100 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+                }
+                
+                return {
+                    originalBits: inputBits,
+                    editedBits: result.map(b => b.toString()).join(''),
+                    parsedCommands,
+                    cycles,
+                    sourceLength: inputBits.length,
+                    resultLength: result.length
+                };
+            }
+            
+            displayEditResults(result, commands, startBit, endBit, repeat) {
+                const resultsContainer = document.getElementById('editResults');
+                this.editedData = result;
+                
+                const compressionRatio = result.resultLength > 0 ? 
+                    (result.sourceLength / result.resultLength * 100).toFixed(2) : 0;
+                
+                resultsContainer.innerHTML = `
+                    <div class="edit-stats">
+                        <div class="edit-stat-card">
+                            <h4>Input Bits</h4>
+                            <div class="value">${result.sourceLength.toLocaleString()}</div>
+                        </div>
+                        <div class="edit-stat-card">
+                            <h4>Output Bits</h4>
+                            <div class="value">${result.resultLength.toLocaleString()}</div>
+                        </div>
+                        <div class="edit-stat-card">
+                            <h4>Cycles</h4>
+                            <div class="value">${result.cycles}</div>
+                        </div>
+                        <div class="edit-stat-card">
+                            <h4>Ratio</h4>
+                            <div class="value">${compressionRatio}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-preview">
+                        <h4>Bit Comparison 
+                            <button class="download-edit-btn" onclick="bitAnalyzer.downloadEditedData()">
+                                📄 Download Result
+                            </button>
+                        </h4>
+                        <div class="bit-comparison">
+                            <div class="comparison-section">
+                                <h5>Original (first 500 bits):</h5>
+                                <div class="bit-display-mini">
+                                    ${this.formatBitsForDisplay(result.originalBits.substring(0, 500))}
+                                </div>
+                            </div>
+                            <div class="comparison-section">
+                                <h5>Edited (first 500 bits):</h5>
+                                <div class="bit-display-mini">
+                                    ${this.formatBitsForDisplay(result.editedBits.substring(0, 500))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            formatBitsForDisplay(bits) {
+                let formatted = '';
+                for (let i = 0; i < bits.length; i++) {
+                    const bit = bits[i];
+                    const className = bit === '1' ? 'bit-1' : 'bit-0';
+                    formatted += `<span class="bit-mini ${className}">${bit}</span>`;
+                    
+                    // Add space every 8 bits
+                    if ((i + 1) % 8 === 0) {
+                        formatted += ' ';
+                    }
+                    // New line every 64 bits
+                    if ((i + 1) % 64 === 0) {
+                        formatted += '<br>';
+                    }
+                }
+                return formatted;
+            }
+            
+            downloadEditedData() {
+                if (!this.editedData) {
+                    alert('No edited data to download.');
+                    return;
+                }
+                
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const editedBits = this.editedData.editedBits;
+                
+                // Create binary file from edited bits
+                const totalBytes = Math.ceil(editedBits.length / 8);
+                const binaryData = new Uint8Array(totalBytes);
+                
+                for (let i = 0; i < editedBits.length; i++) {
+                    const bit = parseInt(editedBits[i]);
+                    const byteIndex = Math.floor(i / 8);
+                    const bitPosition = 7 - (i % 8);
+                    
+                    if (bit === 1) {
+                        binaryData[byteIndex] |= (1 << bitPosition);
+                    }
+                }
+                
+                // Download binary file
+                const blob = new Blob([binaryData], { type: 'application/octet-stream' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `edited_bits_${timestamp}.bin`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Also download report
+                this.downloadEditReport(timestamp);
+            }
+            
+            downloadEditReport(timestamp) {
+                const { originalBits, editedBits, parsedCommands, cycles, sourceLength, resultLength } = this.editedData;
+                
+                let csvContent = `Bit Edit Report - ${timestamp}\n`;
+                csvContent += `Commands Applied: ${document.getElementById('editCommands').value}\n`;
+                csvContent += `Input Length: ${sourceLength} bits\n`;
+                csvContent += `Output Length: ${resultLength} bits\n`;
+                csvContent += `Cycles Executed: ${cycles}\n`;
+                csvContent += `Compression Ratio: ${(sourceLength / resultLength * 100).toFixed(2)}%\n\n`;
+                csvContent += `Command,Type,Value/Count\n`;
+                
+                parsedCommands.forEach((cmd, index) => {
+                    const value = cmd.count !== undefined ? cmd.count : cmd.value;
+                    csvContent += `${index + 1},${cmd.command},${value}\n`;
+                });
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `edit_report_${timestamp}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            getMatchContextPlain(startBit, patternLength) {
+                const contextBefore = 8;
+                const contextAfter = 8;
+                const actualStart = Math.max(0, startBit - contextBefore);
+                const actualEnd = Math.min(this.fileData.length * 8 - 1, startBit + patternLength + contextAfter - 1);
+                
+                let context = '';
+                for (let i = actualStart; i <= actualEnd; i++) {
+                    const byteIndex = Math.floor(i / 8);
+                    const bitPosition = 7 - (i % 8);
+                    const bitValue = (this.fileData[byteIndex] >> bitPosition) & 1;
+                    context += bitValue;
+                }
+                
+                return context;
+            }
+            
+            showAnalysisPopup() {
+                document.getElementById('analysisPopup').style.display = 'block';
+                setTimeout(() => this.makeDraggable(), 100);
+            }
+            
+            hideAnalysisPopup() {
+                document.getElementById('analysisPopup').style.display = 'none';
+            }
+            
+            async runWidthAnalysis() {
+                const minWidth = parseInt(document.getElementById('minWidth').value);
+                const maxWidth = parseInt(document.getElementById('maxWidth').value);
+                const step = parseInt(document.getElementById('analysisStep').value);
+                const startBit = parseInt(document.getElementById('startBit').value);
+                const endBit = parseInt(document.getElementById('endBit').value);
+                
+                if (minWidth >= maxWidth) {
+                    alert('Max width must be greater than min width.');
+                    return;
+                }
+                
+                if (startBit >= endBit) {
+                    alert('End bit must be greater than start bit.');
+                    return;
+                }
+                
+                if (endBit >= this.fileData.length * 8) {
+                    alert('End bit exceeds file length.');
+                    return;
+                }
+                
+                this.showAnalysisLoading();
+                
+                try {
+                    // Run analysis in chunks to prevent UI blocking
+                    const results = await this.performWidthAnalysis(minWidth, maxWidth, step, startBit, endBit);
+                    this.displayAnalysisResults(results);
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    this.showAnalysisError();
+                }
+            }
+            
+            showAnalysisLoading() {
+                document.getElementById('analysisResults').innerHTML = `
+                    <div class="loading-analysis">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Analyzing column patterns across different widths...</div>
+                    </div>
+                `;
+            }
+            
+            showAnalysisError() {
+                document.getElementById('analysisResults').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff6b6b;">
+                        <h3>Analysis Error</h3>
+                        <p>An error occurred during analysis. Please try with different parameters.</p>
+                    </div>
+                `;
+            }
+            
+            async performWidthAnalysis(minWidth, maxWidth, step, startBit, endBit) {
+                const results = [];
+                const analysisRange = endBit - startBit + 1;
+                
+                for (let width = minWidth; width <= maxWidth; width += step) {
+                    // Calculate column biases for this width within the specified range
+                    const columnBiases = new Array(width).fill(0).map(() => ({ ones: 0, zeros: 0 }));
+                    const totalRows = Math.floor(analysisRange / width);
+                    
+                    // Only analyze complete rows within the range
+                    const bitsToAnalyze = totalRows * width;
+                    
+                    for (let i = 0; i < bitsToAnalyze; i++) {
+                        const bitIndex = startBit + i;
+                        const column = i % width;
+                        const byteIndex = Math.floor(bitIndex / 8);
+                        const bitPosition = 7 - (bitIndex % 8);
+                        const bitValue = (this.fileData[byteIndex] >> bitPosition) & 1;
+                        
+                        if (bitValue === 1) {
+                            columnBiases[column].ones++;
+                        } else {
+                            columnBiases[column].zeros++;
+                        }
+                    }
+                    
+                    // Calculate chi-squared test for each column (absolute measure)
+                    const chiSquaredValues = columnBiases.map(col => {
+                        const total = col.ones + col.zeros;
+                        if (total < 10) return 0; // Skip columns with insufficient data (lowered threshold)
+                        
+                        const expected = total * 0.5;
+                        const chiSquared = Math.pow(col.ones - expected, 2) / expected + 
+                                         Math.pow(col.zeros - expected, 2) / expected;
+                        return chiSquared;
+                    });
+                    
+                    // Statistical significance measures (absolute, not relative)
+                    const validChiSquared = chiSquaredValues.filter(chi => chi > 0);
+                    const avgChiSquared = validChiSquared.length > 0 ? 
+                        validChiSquared.reduce((a, b) => a + b, 0) / validChiSquared.length : 0;
+                    const maxChiSquared = Math.max(...chiSquaredValues);
+                    const standardDeviation = validChiSquared.length > 1 ? 
+                        Math.sqrt(this.calculateVariance(validChiSquared)) : 0;
+                    
+                    // Count columns with statistically significant bias (chi-squared > 3.841 for p < 0.05)
+                    const significantColumns = chiSquaredValues.filter(chi => chi > 3.841).length;
+                    const significanceRatio = significantColumns / width;
+                    
+                    // Absolute significance score combining multiple measures
+                    const significanceScore = (avgChiSquared * significanceRatio * (1 + standardDeviation)) / 100;
+                    
+                    results.push({
+                        width,
+                        avgChiSquared,
+                        maxChiSquared,
+                        standardDeviation,
+                        significantColumns,
+                        significanceRatio,
+                        significanceScore,
+                        columnBiases: chiSquaredValues,
+                        sampleSize: bitsToAnalyze
+                    });
+                    
+                    // Yield control periodically
+                    if ((width - minWidth) % (step * 3) === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 5));
+                    }
+                }
+                
+                return results;
+            }
+            
+            calculateVariance(values) {
+                const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                const squaredDiffs = values.map(x => Math.pow(x - mean, 2));
+                return squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+            }
+            
+            displayAnalysisResults(results) {
+                const resultsContainer = document.getElementById('analysisResults');
+                
+                // Find the most significant width (absolute measure)
+                const bestResult = results.reduce((best, current) => 
+                    current.significanceScore > best.significanceScore ? current : best
+                );
+                
+                const avgSignificance = results.reduce((sum, r) => sum + r.significanceScore, 0) / results.length;
+                const startBit = parseInt(document.getElementById('startBit').value);
+                const endBit = parseInt(document.getElementById('endBit').value);
+                const rangeSize = endBit - startBit + 1;
+                
+                resultsContainer.innerHTML = `
+                    <div class="chart-container">
+                        <canvas class="chart-canvas" id="analysisChart"></canvas>
+                    </div>
+                    <div class="results-summary">
+                        <div class="summary-card">
+                            <h4>Optimal Width</h4>
+                            <div class="value">${bestResult.width} bits</div>
+                            <div class="description">${bestResult.significantColumns} significant columns</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Max χ² Value</h4>
+                            <div class="value">${bestResult.maxChiSquared.toFixed(2)}</div>
+                            <div class="description">Highest column bias detected</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Analysis Range</h4>
+                            <div class="value">${rangeSize.toLocaleString()} bits</div>
+                            <div class="description">From bit ${startBit.toLocaleString()} to ${endBit.toLocaleString()}</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>Recommended Action</h4>
+                            <div class="value">
+                                <button onclick="document.getElementById('bitsPerRow').value = ${bestResult.width}; bitAnalyzer.updateBitsPerRow({target: {value: ${bestResult.width}}}); bitAnalyzer.hideAnalysisPopup();" 
+                                        style="background: #4facfe; border: none; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                    Apply Width
+                                </button>
+                            </div>
+                            <div class="description">Set display to optimal width</div>
+                        </div>
+                    </div>
+                `;
+                
+                this.drawAnalysisChart(results);
+            }
+            
+            drawAnalysisChart(results) {
+                const canvas = document.getElementById('analysisChart');
+                const ctx = canvas.getContext('2d');
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                
+                const chartWidth = rect.width - 80;
+                const chartHeight = rect.height - 80;
+                const startX = 50;
+                const startY = 30;
+                
+                this.chartDimensions = { chartWidth, chartHeight, startX, startY, rect };
+                this.chartResults = results;
+                
+                // Clear canvas
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(0, 0, rect.width, rect.height);
+                
+                // Find data ranges
+                const maxSignificance = Math.max(...results.map(r => r.significanceScore));
+                const minWidth = Math.min(...results.map(r => r.width));
+                const maxWidth = Math.max(...results.map(r => r.width));
+                
+                this.chartDataRanges = { maxSignificance, minWidth, maxWidth };
+                
+                // Draw grid and axes
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                
+                // Vertical grid lines
+                for (let i = 0; i <= 5; i++) {
+                    const x = startX + (i * chartWidth / 5);
+                    ctx.beginPath();
+                    ctx.moveTo(x, startY);
+                    ctx.lineTo(x, startY + chartHeight);
+                    ctx.stroke();
+                }
+                
+                // Horizontal grid lines
+                for (let i = 0; i <= 4; i++) {
+                    const y = startY + (i * chartHeight / 4);
+                    ctx.beginPath();
+                    ctx.moveTo(startX, y);
+                    ctx.lineTo(startX + chartWidth, y);
+                    ctx.stroke();
+                }
+                
+                // Draw data line
+                ctx.strokeStyle = '#4facfe';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                results.forEach((result, index) => {
+                    const x = startX + ((result.width - minWidth) / (maxWidth - minWidth)) * chartWidth;
+                    const y = startY + chartHeight - (result.significanceScore / maxSignificance) * chartHeight;
+                    
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.stroke();
+                
+                // Draw data points
+                ctx.fillStyle = '#4facfe';
+                results.forEach(result => {
+                    const x = startX + ((result.width - minWidth) / (maxWidth - minWidth)) * chartWidth;
+                    const y = startY + chartHeight - (result.significanceScore / maxSignificance) * chartHeight;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+                
+                // Highlight best result
+                const bestResult = results.reduce((best, current) => 
+                    current.significanceScore > best.significanceScore ? current : best
+                );
+                
+                const bestX = startX + ((bestResult.width - minWidth) / (maxWidth - minWidth)) * chartWidth;
+                const bestY = startY + chartHeight - (bestResult.significanceScore / maxSignificance) * chartHeight;
+                
+                ctx.strokeStyle = '#f39c12';
+                ctx.fillStyle = '#f39c12';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(bestX, bestY, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Width (bits)', startX + chartWidth / 2, startY + chartHeight + 35);
+                
+                ctx.save();
+                ctx.translate(15, startY + chartHeight / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Pattern Significance', 0, 0);
+                ctx.restore();
+                
+                // Axis labels - ensure we show the full range requested
+                ctx.textAlign = 'center';
+                ctx.font = '10px Arial';
+                for (let i = 0; i <= 5; i++) {
+                    const x = startX + (i * chartWidth / 5);
+                    const width = minWidth + ((maxWidth - minWidth) * i / 5);
+                    ctx.fillText(Math.round(width).toString(), x, startY + chartHeight + 20);
+                }
+                
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 4; i++) {
+                    const y = startY + (i * chartHeight / 4);
+                    const value = maxSignificance * (1 - i / 4);
+                    ctx.fillText((value * 100).toFixed(1) + '%', startX - 10, y + 4);
+                }
+                
+                canvas.onclick = (e) => this.handleChartClick(e);
+                canvas.style.cursor = 'crosshair';
+            }
+            
+            handleChartClick(event) {
+                if (!this.chartDimensions || !this.chartResults || !this.chartDataRanges) return;
+                
+                const rect = event.target.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                const { chartWidth, chartHeight, startX, startY } = this.chartDimensions;
+                const { minWidth, maxWidth } = this.chartDataRanges;
+                
+                // Check if click is within chart area
+                if (x < startX || x > startX + chartWidth || y < startY || y > startY + chartHeight) {
+                    return;
+                }
+                
+                // Calculate the width corresponding to the clicked x position
+                const relativeX = (x - startX) / chartWidth;
+                const clickedWidth = Math.round(minWidth + (maxWidth - minWidth) * relativeX);
+                
+                // Find the closest actual data point
+                let closestResult = this.chartResults[0];
+                let minDistance = Math.abs(this.chartResults[0].width - clickedWidth);
+                
+                this.chartResults.forEach(result => {
+                    const distance = Math.abs(result.width - clickedWidth);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestResult = result;
+                    }
+                });
+                
+                // Apply the selected width
+                document.getElementById('bitsPerRow').value = closestResult.width;
+                this.updateBitsPerRow({target: {value: closestResult.width}});
+                
+                // Show feedback
+                const feedback = document.createElement('div');
+                feedback.style.cssText = `
+                    position: fixed;
+                    top: ${event.clientY - 30}px;
+                    left: ${event.clientX}px;
+                    background: #4facfe;
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    z-index: 10000;
+                    pointer-events: none;
+                    transform: translateX(-50%);
+                `;
+                feedback.textContent = `Width ${closestResult.width} applied`;
+                document.body.appendChild(feedback);
+                
+                setTimeout(() => {
+                    if (feedback.parentNode) {
+                        feedback.parentNode.removeChild(feedback);
+                    }
+                }, 1500);
+            }
+            
+            makeDraggable() {
+                const popup = document.getElementById('analysisPopup');
+                const header = popup.querySelector('.analysis-header');
+                let isDragging = false;
+                let currentX;
+                let currentY;
+                let initialX;
+                let initialY;
+                let xOffset = 0;
+                let yOffset = 0;
+
+                header.addEventListener('mousedown', dragStart);
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', dragEnd);
+
+                function dragStart(e) {
+                    if (e.target.classList.contains('close-button')) return;
+                    
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+
+                    if (e.target === header || header.contains(e.target)) {
+                        isDragging = true;
+                        popup.style.cursor = 'grabbing';
+                    }
+                }
+
+                function drag(e) {
+                    if (isDragging) {
+                        e.preventDefault();
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+
+                        xOffset = currentX;
+                        yOffset = currentY;
+
+                        popup.style.transform = `translate(${currentX}px, ${currentY}px)`;
+                        popup.style.left = '50%';
+                        popup.style.top = '50%';
+                    }
+                }
+
+                function dragEnd(e) {
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                    popup.style.cursor = 'move';
+                }
+            }
+        }
+        
+        // Initialize the application
+        let bitAnalyzer;
+        document.addEventListener('DOMContentLoaded', () => {
+            bitAnalyzer = new BitAnalyzer();
+        });
+    </script>
+</body>
+</html>
