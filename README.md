@@ -19,7 +19,7 @@ A powerful web-based tool for analysing binary files at the bit level, built usi
 ## 🚀 Getting Started
 
 1. Clone this repository
-2. Open `bitanalyser.html` in a modern web browser
+2. Open `index.html` in a modern web browser
 3. Click "Choose File" to load any binary file
 4. Explore the visualisation and use the action tools
 
